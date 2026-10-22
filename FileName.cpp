@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <windows.h>
 #include <locale.h>
 
 struct node
@@ -15,9 +16,12 @@ struct node* head = NULL, * last = NULL;
 int dlina = 0;
 
 struct node* get_struct(void);
+struct node* get_struct_no_prior(void);
 void review(void);
+void review_no_prior(void);
 struct node* find(char* name);
 void del(char* name);
+void del_to_end(char* name);
 void clear_list(void);
 
 void enqueue_fifo(void);
@@ -26,11 +30,13 @@ void fifo_menu(void);
 
 void enqueue_priority(void);
 struct node* dequeue_priority(void);
+void change_by_priority(void);
 void priority_menu(void);
 
 void push(void);
 struct node* pop(void);
 void stack_menu(void);
+
 
 struct node* get_struct(void)
 {
@@ -57,6 +63,28 @@ struct node* get_struct(void)
     return p;
 }
 
+struct node* get_struct_no_prior(void)
+{
+    struct node* p = NULL;
+    char s[256];
+
+    p = (struct node*)malloc(sizeof(struct node));
+    if (p == NULL)
+    {
+        printf("Ошибка при распределении памяти\n");
+        exit(1);
+    }
+
+    printf("Введите название объекта: ");
+    scanf_s("%s", s, 256);
+    strcpy_s(p->inf, 256, s);
+
+    p->prior = 0;
+    p->next = NULL;
+    return p;
+}
+
+
 void review(void)
 {
     struct node* struc = head;
@@ -73,6 +101,24 @@ void review(void)
         struc = struc->next;
     }
 }
+
+void review_no_prior(void)
+{
+    struct node* struc = head;
+
+    if (head == NULL)
+    {
+        printf("Список пуст\n");
+        return;
+    }
+
+    while (struc)
+    {
+        printf("Имя - %s\n", struc->inf);
+        struc = struc->next;
+    }
+}
+
 
 struct node* find(char* name)
 {
@@ -94,6 +140,7 @@ struct node* find(char* name)
     printf("Элемент не найден\n");
     return NULL;
 }
+
 
 void del(char* name)
 {
@@ -137,6 +184,55 @@ void del(char* name)
         printf("Элемент не найден\n");
 }
 
+void del_to_end(char* name)
+{
+    if (head == NULL)
+    {
+        printf("Список пуст\n");
+        return;
+    }
+
+    struct node* to_move[1024];
+    int n = 0;
+
+    struct node* struc = head;
+    while (struc)
+    {
+        if (strcmp(name, struc->inf) == 0)
+            to_move[n++] = struc;
+        struc = struc->next;
+    }
+
+    if (n == 0)
+    {
+        printf("Элемент не найден\n");
+        return;
+    }
+
+    for (int i = 0; i < n; i++)
+    {
+        struct node* m = to_move[i];
+
+        if (m == last) continue;
+
+        if (m == head)
+        {
+            head = m->next;
+        }
+        else
+        {
+            struct node* p = head;
+            while (p->next != m) p = p->next;
+            p->next = m->next;
+        }
+
+        last->next = m;
+        last = m;
+        m->next = NULL;
+    }
+}
+
+
 void clear_list(void)
 {
     struct node* p = head;
@@ -149,104 +245,6 @@ void clear_list(void)
     head = NULL;
     last = NULL;
     dlina = 0;
-}
-
-void enqueue_fifo(void)
-{
-    struct node* p = get_struct();
-    if (p == NULL) return;
-
-    if (head == NULL)
-    {
-        head = p;
-        last = p;
-    }
-    else
-    {
-        last->next = p;
-        last = p;
-    }
-    dlina++;
-}
-
-struct node* dequeue_fifo(void)
-{
-    struct node* p;
-
-    if (head == NULL)
-    {
-        printf("Очередь пуста\n");
-        return NULL;
-    }
-
-    p = head;
-    head = head->next;
-
-    if (head == NULL)
-        last = NULL;
-
-    p->next = NULL;
-    dlina--;
-    return p;
-}
-
-void fifo_menu(void)
-{
-    int choice;
-    char name[256];
-    struct node* p;
-
-    do
-    {
-        printf("\n--- Обычная очередь (FIFO) ---\n");
-        printf("1. Добавить элемент\n");
-        printf("2. Извлечь элемент\n");
-        printf("3. Просмотр\n");
-        printf("4. Найти\n");
-        printf("5. Удалить по имени\n");
-        printf("0. Назад\n");
-        printf("Выбор: ");
-        scanf_s("%d", &choice, 256);
-
-        switch (choice)
-        {
-        case 1:
-            enqueue_fifo();
-            break;
-
-        case 2:
-            p = dequeue_fifo();
-            if (p != NULL)
-            {
-                printf("Извлечён: %s (приоритет=%d)\n", p->inf, p->prior);
-                free(p);
-            }
-            break;
-
-        case 3:
-            review();
-            break;
-
-        case 4:
-            printf("Имя: ");
-            scanf_s("%s", name, 256);
-            p = find(name); if (p != NULL)
-                printf("Найден: %s (приоритет=%d)\n", p->inf, p->prior);
-            break;
-
-        case 5:
-            printf("Имя: ");
-            scanf_s("%s", name, 256);
-            del(name);
-            break;
-
-        case 0:
-            break;
-
-        default:
-            printf("Неверный пункт\n");
-        }
-    } while (choice != 0);
 }
 
 void enqueue_priority(void)
@@ -306,6 +304,81 @@ struct node* dequeue_priority(void)
     return p;
 }
 
+void change_by_priority(void)
+{
+    int pr;
+    char new_name[256];
+    char answer;
+    struct node* struc = head;
+    int found = 0;
+    int count = 0;
+
+    if (head == NULL)
+    {
+        printf("Список пуст\n");
+        return;
+    }
+
+    printf("Введите приоритет для поиска: ");
+    scanf_s("%d", &pr);
+
+    while (struc)
+    {
+        if (struc->prior == pr)
+        {
+            found = 1;
+            break;
+        }
+        struc = struc->next;
+    }
+
+    if (!found)
+    {
+        printf("Элементы с приоритетом %d не найдены\n", pr);
+        return;
+    }
+
+    printf("Элементы с приоритетом %d:\n", pr);
+    struc = head;
+    while (struc)
+    {
+        if (struc->prior == pr)
+        {
+            count++;
+            printf("  %d) Имя - %s\n", count, struc->inf);
+        }
+        struc = struc->next;
+    }
+
+    struc = head;
+    count = 0;
+    while (struc)
+    {
+        if (struc->prior == pr)
+        {
+            count++;
+            printf("\nЭлемент %d: '%s'\n", count, struc->inf);
+            printf("Изменить имя? (y/n): ");
+            scanf_s(" %c", &answer, 1);
+
+            if (answer == 'y' || answer == 'Y')
+            {
+                printf("Введите новое имя: ");
+                scanf_s("%s", new_name, 256);
+                strcpy_s(struc->inf, 256, new_name);
+                printf("Имя изменено на '%s'\n", struc->inf);
+            }
+            else
+            {
+                printf("Пропущено\n");
+            }
+        }
+        struc = struc->next;
+    }
+
+    printf("\nИзменение завершено\n");
+}
+
 void priority_menu(void)
 {
     int choice;
@@ -314,12 +387,13 @@ void priority_menu(void)
 
     do
     {
-        printf("\n--- Приоритетная очередь ---\n");
+        printf("\nПриоритетная очередь\n");
         printf("1. Добавить элемент\n");
         printf("2. Извлечь элемент\n");
         printf("3. Просмотр\n");
         printf("4. Найти\n");
         printf("5. Удалить по имени\n");
+        printf("6. Изменить имя по приоритету\n");
         printf("0. Назад\n");
         printf("Выбор: ");
         scanf_s("%d", &choice, 256);
@@ -357,6 +431,10 @@ void priority_menu(void)
             del(name);
             break;
 
+        case 6:
+            change_by_priority();
+            break;
+
         case 0:
             break;
 
@@ -366,9 +444,111 @@ void priority_menu(void)
     } while (choice != 0);
 }
 
+void enqueue_fifo(void)
+{
+    struct node* p = get_struct_no_prior();
+    if (p == NULL) return;
+
+    if (head == NULL)
+    {
+        head = p;
+        last = p;
+    }
+    else
+    {
+        last->next = p;
+        last = p;
+    }
+    dlina++;
+}
+
+struct node* dequeue_fifo(void)
+{
+    struct node* p;
+
+    if (head == NULL)
+    {
+        printf("Очередь пуста\n");
+        return NULL;
+    }
+
+    p = head;
+    head = head->next;
+
+    if (head == NULL)
+        last = NULL;
+
+    p->next = NULL;
+    dlina--;
+    return p;
+}
+
+void fifo_menu(void)
+{
+    int choice;
+    char name[256];
+    struct node* p;
+
+    do
+    {
+        printf("\nОбычная очередь\n");
+        printf("1. Добавить элемент\n");
+        printf("2. Извлечь элемент\n");
+        printf("3. Просмотр\n");
+        printf("4. Найти\n");
+        printf("5. Удалить по имени (в конец очереди)\n");
+        printf("0. Назад\n");
+        printf("Выбор: ");
+        scanf_s("%d", &choice, 256);
+
+        switch (choice)
+        {
+        case 1:
+            enqueue_fifo();
+            break;
+
+        case 2:
+            p = dequeue_fifo();
+            if (p != NULL)
+            {
+                printf("Извлечён: %s\n", p->inf);
+                free(p);
+            }
+            break;
+
+        case 3:
+            review_no_prior();
+            break;
+
+        case 4:
+            printf("Имя: ");
+            scanf_s("%s", name, 256);
+            p = find(name);
+            if (p != NULL)
+                printf("Найден: %s\n", p->inf);
+            break;
+
+        case 5:
+            printf("Имя: ");
+            scanf_s("%s", name, 256);
+            del_to_end(name);
+            break;
+
+        case 0:
+            break;
+
+        default:
+            printf("Неверный пункт\n");
+        }
+    } while (choice != 0);
+}
+
+
+
+
 void push(void)
 {
-    struct node* p = get_struct();
+    struct node* p = get_struct_no_prior();
 
     if (p == NULL) return;
 
@@ -380,6 +560,7 @@ void push(void)
 
     dlina++;
 }
+
 
 struct node* pop(void)
 {
@@ -410,7 +591,7 @@ void stack_menu(void)
 
     do
     {
-        printf("\n--- Стек ---\n");
+        printf("\nСтек\n");
         printf("1. Добавить элемент\n");
         printf("2. Извлечь элемент\n");
         printf("3. Просмотр\n");
@@ -436,7 +617,7 @@ void stack_menu(void)
             break;
 
         case 3:
-            review();
+            review_no_prior();
             break;
 
         case 4:
@@ -456,20 +637,25 @@ void stack_menu(void)
         case 0:
             break;
 
-        default:printf("Неверный пункт\n");
+        default:
+            printf("Неверный пункт\n");
         }
     } while (choice != 0);
 }
 
+
 int main(void)
 {
+    SetConsoleOutputCP(1251);
+    SetConsoleCP(1251);
     setlocale(LC_ALL, "Russian");
+
     int choice;
 
     do
     {
         printf("\nГЛАВНОЕ МЕНЮ\n");
-        printf("1. Обычная очередь (FIFO)\n");
+        printf("1. Обычная очередь\n");
         printf("2. Приоритетная очередь\n");
         printf("3. Стек\n");
         printf("0. Выход\n");
